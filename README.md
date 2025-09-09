@@ -1,1 +1,5 @@
-# ICT_4305
+# ICT4305 Object Oriented Programming
+
+## Contributors
+* Joseph DiBiasi
+* Nirav Shah
