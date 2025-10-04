@@ -93,7 +93,8 @@ public class ParkingLot {
 	 * Using a nightly batch process, this method would be called at midnight for
 	 * every parking lot using the daily rate in the university system. Once called,
 	 * the parking lot will update the parking fees for each car currently parked in
-	 * the lot.
+	 * the lot. The updateDailyFees method does not check for chargeOnExit because
+	 * that will be the responsibility of the nightly process.
 	 */
 	public void updateDailyFees() {
 		for (Car car : this.parkedCars) {
