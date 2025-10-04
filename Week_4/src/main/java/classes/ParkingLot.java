@@ -8,12 +8,14 @@ import java.util.UUID;
 
 public class ParkingLot {
 
+	// Parking Lot ID. Unique.
 	private UUID lotId;
 
 	private Address address;
 
 	private Integer capacity;
 
+	// True = Hourly Rate. False = Daily Rate.
 	private Boolean chargeOnExit;
 
 	private Double lotFee;

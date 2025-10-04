@@ -18,14 +18,17 @@ public class Car {
 		this.owner = owner;
 	}
 
+	// Customer name. Not unique.
 	private String permit;
 
 	private LocalDate permitExpiration;
 
+	// License plate number. Unique.
 	private String license;
 
 	private CarType type;
 
+	// Customer ID. Unique.
 	private UUID owner;
 
 	private HashMap<UUID, ParkingFee> parkingFees;

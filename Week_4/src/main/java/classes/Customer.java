@@ -6,6 +6,7 @@ import java.util.UUID;
 
 public class Customer {
 
+	// Campus ID. Unique.
 	private UUID customerId;
 
 	private String name;

@@ -22,7 +22,6 @@ public class ParkingFee {
 
 	private Integer rate;
 	private Boolean dailyRate;
-
 	private Double lotFee;
 	private UUID lotId;
 	private LocalDateTime entryTime;
