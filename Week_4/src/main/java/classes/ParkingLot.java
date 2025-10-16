@@ -46,8 +46,8 @@ public class ParkingLot {
 			}
 
 			if (!this.chargeOnExit) {
-				ParkingFee fee = new ParkingFee(1, Boolean.TRUE, this.lotFee, this.lotId);
-				car.updateParkingFees(fee, Boolean.TRUE);
+				ParkingCharge charge = new ParkingCharge();
+				charge.setLotId(getLotId());
 			} else {
 				ParkingFee fee = new ParkingFee(0, Boolean.FALSE, this.lotFee, this.lotId, LocalDateTime.now());
 				car.updateParkingFees(fee, Boolean.FALSE);
