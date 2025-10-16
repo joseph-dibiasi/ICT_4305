@@ -1,0 +1,15 @@
+package classes;
+
+public class Money {
+
+	private long cents;
+
+	public double getDollars() {
+		return this.cents / 100.0;
+	}
+	
+	@Override
+	public String toString() {
+		return "Money [cents=" + cents + "]";
+	}
+}
