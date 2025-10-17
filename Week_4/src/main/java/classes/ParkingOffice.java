@@ -1,6 +1,9 @@
 package classes;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +32,102 @@ public class ParkingOffice {
 		Car car = new Car(customer.getName(), LocalDate.now().plusYears(1), license, type, customer.getCustomerId());
 		return car;
 
+	}
+	
+	/*
+	 * This method is responsible for creating the entry ParkingFee object for each
+	 * car, but there are several validations that need to be done first. If any
+	 * validation fails, an exception is thrown and not caught. That is because any
+	 * validation failure means a car is not allowed to enter the lot. While most of
+	 * these errors would simply return a more graceful error message, the last
+	 * checked exception could represent something more serious. If this exception
+	 * were to be thrown, it is possible a separate process would alert the Parking
+	 * Office to potential malfeasance.
+	 */
+	public void entry(ParkingLot lot, Car car) {
+		try {
+			if (car.getPermit() == null) {
+				throw new RuntimeException("Permit required to enter parking lot.");
+			}
+			if (car.getPermitExpiration().isBefore(LocalDateTime.now().toLocalDate())) {
+				throw new RuntimeException("Permit expired. Please contact Parking Office.");
+			}
+			if (lot.getParkedCars().size() >= lot.getCapacity()) {
+				System.err.println("Parking Lot Full.");
+				throw new RuntimeException("Parking Lot Full.");
+			}
+
+			
+			if (lot.getParkedCars().contains(car)) {
+				System.err.println("Car already parked in the lot.");
+				throw new RuntimeException("Car already parked in the lot.");
+			}
+			this.createParkingCharge(lot, car);
+			lot.getParkedCars().add(car);
+		} catch (Exception e) {
+			System.err.println("Failed to validate entry: " + e.getMessage());
+			throw new RuntimeException(e.getMessage());
+		}
+	}
+
+	/*
+	 * Calculating the hourly rate here allows us to use the same updateParkingFees
+	 * method with only slight variation to account for the daily vs hourly rate.
+	 * Once the hourly rate is calculated, the entry time is nulled out. This allows
+	 * the user to enter and exit the lot multiple times and only be charged for the
+	 * time spent in the lot. Finally, the car is removed from the set of parked
+	 * cars so a user can re-enter the lot if desired and so new cars can enter the
+	 * lot if it was previously at capacity.
+	 */
+	public void exit(Car car) {
+		try {
+
+			if (this.chargeOnExit) {
+				ParkingFee fee = car.getParkingFees().get(this.lotId);
+				LocalDateTime entryTime = fee.getEntryTime();
+				LocalDateTime exitTime = LocalDateTime.now();
+
+				Integer hoursBetween = (int) ChronoUnit.HOURS.between(entryTime, exitTime);
+				fee.setRate(fee.getRate() + hoursBetween);
+				fee.setEntryTime(null);
+				car.updateParkingFees(fee, Boolean.FALSE);
+			}
+			this.parkedCars.remove(car);
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to process exit: " + e.getMessage());
+		}
+	}
+
+	/*
+	 * Using a nightly batch process, this method would be called at midnight for
+	 * every parking lot using the daily rate in the university system. Once called,
+	 * the parking lot will update the parking fees for each car currently parked in
+	 * the lot. The updateDailyFees method does not check for chargeOnExit because
+	 * that will be the responsibility of the nightly process.
+	 */
+	public void updateDailyFees() {
+		for (ParkingLot lot : lots.stream().filter(lot -> !lot.getChargeOnExit()).toList()) {
+				for (Car car : lot.getParkedCars()) {
+					ParkingCharge charge = new ParkingCharge();
+					charge.setLotId(lot.getLotId());
+					charge.setPermitId(car.getOwner());
+					charge.setIncurred(Instant.now());
+					charge.setAmount(lot.getLotFee());
+					charges.add(charge);
+				}
+		}
+	}
+	
+	/*
+	 * Parking charges are created to track amount owed for each car.
+	 */
+	public void createParkingCharge(ParkingLot lot, Car car) {
+			ParkingCharge charge = new ParkingCharge();
+			charge.setLotId(lot.getLotId());
+			charge.setPermitId(car.getOwner());
+			charge.setIncurred(Instant.now());
+			charge.setAmount(lot.getLotFee());
+		
 	}
 	
 	/*
@@ -63,13 +162,14 @@ public class ParkingOffice {
 	 * register multiple cars, the total bill for each car is calculated separately.
 	 * This allows the 20% compact car discount to apply on a car by car basis.
 	 */
-	public Double calculatePermitBill() {
+	public Double calculatePermitBill(Car car) {
 		Double total = 0.0;
+		List<ParkingCharge> charges = findParkingChargesByOwnerId(car.getOwner());
 		for (ParkingCharge charge : charges) {
 			total += charge.getAmount().getDollars();
 		}
 
-		if (this.getType() == CarType.COMPACT) {
+		if (car.getType() == CarType.COMPACT) {
 			total = total * 0.8;
 		}
 
@@ -92,12 +192,18 @@ public class ParkingOffice {
 	 * process failed at any stage, we would still want to know what they should
 	 * owe!
 	 */
-	public Double calculateCustomerMonthlyBill() {
+	public String calculateCustomerMonthlyBill(Customer customer) {
 		Double total = 0.0;
-		for (Car car : getCars().values()) {
-			total += car.calculatePermitBill();
+		for (Car car : this.findCarsByCustomerId(customer.getCustomerId())) {
+			total += this.calculatePermitBill(car);
 		}
-		return total;
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append("Customer Monthly Bill for: ").append(customer.getName()).append("\n");
+		sb.append("Bill amount: $").append(total).append("\n");
+		sb.append("Sent to: $").append(customer.getAddress());
+
+		return sb.toString();
 	}
 
 	
@@ -148,6 +254,12 @@ public class ParkingOffice {
 	}
 	public ParkingCharge findParkingChargeByLotId(UUID lotId) {
 		return charges.stream().filter(charge -> charge.getLotId().equals(lotId)).findFirst().orElse(null);
+	}
+	public List<ParkingCharge> findParkingChargesByOwnerId(UUID ownerId) {
+		return charges.stream().filter(charge -> charge.getPermitId().equals(ownerId)).toList();
+	}
+	public List<Car> findCarsByCustomerId(UUID customerId) {
+		return cars.stream().filter(car -> car.getOwner().equals(customerId)).toList();
 	}
 	public List<ParkingCharge> getCharges() {
 		return charges;

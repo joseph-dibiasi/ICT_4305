@@ -1,6 +1,14 @@
 package classes;
 
 public class Money {
+	
+	public Money() {
+		
+	}
+	
+	public Money(long cents) {
+		this.cents = cents;
+	}
 
 	private long cents;
 
