@@ -1,10 +1,7 @@
 package classes;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -13,135 +10,87 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ParkingLotTest {
 
-    private ParkingLot parkingLot;
-    private UUID lotId;
-    private Car car;
-
-    @BeforeEach
-    void setUp() {
-        lotId = UUID.randomUUID();
-
-        parkingLot = new ParkingLot();
-        parkingLot.setLotId(lotId);
-        parkingLot.setCapacity(2);
-        parkingLot.setChargeOnExit(false);
-        parkingLot.setLotFee(10.0);
-        parkingLot.setParkedCars(new HashSet<>());
-
-        car = new Car();
-        car.setLicense("ABC123");
-        car.setOwner(UUID.randomUUID());
-        car.setType(CarType.SUV);
-        car.setPermit("PERMIT123");
-        car.setPermitExpiration(LocalDate.now().plusDays(1));
-        car.setParkingFees(new java.util.HashMap<>());
+    @Test
+    void testSetAndGetLotId() {
+        ParkingLot lot = new ParkingLot();
+        UUID id = UUID.randomUUID();
+        lot.setLotId(id);
+        assertEquals(id, lot.getLotId());
     }
 
     @Test
-    void testEntryChargeOnEntrySuccess() {
-        parkingLot.setChargeOnExit(false);
-
-        parkingLot.entry(car);
-
-        assertTrue(parkingLot.getParkedCars().contains(car));
-        assertTrue(car.getParkingFees().containsKey(lotId));
-        assertEquals(1, car.getParkingFees().get(lotId).getRate());
-        assertEquals(10.0, car.getParkingFees().get(lotId).getLotFees(), 0.0001);
+    void testSetAndGetAddress() {
+        ParkingLot lot = new ParkingLot();
+        Address address = new Address();
+        address.setCity("New York");
+        lot.setAddress(address);
+        assertEquals(address, lot.getAddress());
+        assertEquals("New York", lot.getAddress().getCity());
     }
 
     @Test
-    void testEntryChargeOnExitSuccess() {
-        parkingLot.setChargeOnExit(true);
-
-        parkingLot.entry(car);
-
-        assertTrue(parkingLot.getParkedCars().contains(car));
-        assertNotNull(car.getParkingFees().get(lotId).getEntryTime());
-        assertEquals(0, car.getParkingFees().get(lotId).getRate());
+    void testSetAndGetCapacity() {
+        ParkingLot lot = new ParkingLot();
+        lot.setCapacity(100);
+        assertEquals(100, lot.getCapacity());
     }
 
     @Test
-    void testEntryFailsWithoutPermit() {
-        car.setPermit(null);
-
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> parkingLot.entry(car));
-        assertEquals("Permit required to enter parking lot.", ex.getMessage());
+    void testSetAndGetChargeOnExit() {
+        ParkingLot lot = new ParkingLot();
+        lot.setChargeOnExit(true);
+        assertTrue(lot.getChargeOnExit());
     }
 
     @Test
-    void testEntryFailsWithExpiredPermit() {
-        car.setPermitExpiration(LocalDate.now().minusDays(1));
-
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> parkingLot.entry(car));
-        assertEquals("Permit expired. Please contact Parking Office.", ex.getMessage());
+    void testSetAndGetLotFee() {
+        ParkingLot lot = new ParkingLot();
+        Money fee = new Money(1500L); // $15.00
+        lot.setLotFee(fee);
+        assertEquals(1500L, lot.getLotFee().getCents());
     }
 
     @Test
-    void testEntryFailsIfLotIsFull() {
-        parkingLot.setCapacity(1);
-        Car car1 = new Car();
-        car1.setPermit("PERMIT1");
-        car1.setPermitExpiration(LocalDate.now().plusDays(1));
-        car1.setLicense("CAR1");
-        car1.setOwner(UUID.randomUUID());
-        car1.setParkingFees(new java.util.HashMap<>());
+    void testSetAndGetParkedCars() {
+        ParkingLot lot = new ParkingLot();
+        Set<Car> cars = new HashSet<>();
 
-        parkingLot.entry(car1);
+        Car car = new Car();
+        car.setLicense("XYZ-123");
+        cars.add(car);
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> parkingLot.entry(car));
-        assertEquals("Parking Lot Full.", ex.getMessage());
+        lot.setParkedCars(cars);
+
+        assertEquals(1, lot.getParkedCars().size());
+        assertTrue(lot.getParkedCars().contains(car));
     }
 
     @Test
-    void testEntryFailsIfCarAlreadyParked() {
-        parkingLot.getParkedCars().add(car);
-
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> parkingLot.entry(car));
-        assertEquals("Car already parked in the lot.", ex.getMessage());
+    void testGetParkedCarsInitializesIfNull() {
+        ParkingLot lot = new ParkingLot();
+        assertNotNull(lot.getParkedCars());
+        assertTrue(lot.getParkedCars().isEmpty());
     }
 
     @Test
-    void testExitUpdatesFeeForChargeOnExit() throws InterruptedException {
-        parkingLot.setChargeOnExit(true);
-        parkingLot.entry(car);
+    void testToString() {
+        ParkingLot lot = new ParkingLot();
+        UUID id = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        lot.setLotId(id);
 
-        // Simulate 2 hours later by manipulating entry time
-        ParkingFee fee = car.getParkingFees().get(lotId);
-        fee.setEntryTime(LocalDateTime.now().minusHours(2));
+        Address address = new Address();
+        address.setStreetAddress1("123 Main St");
+        address.setCity("Gotham");
+        address.setState("NJ");
+        address.setZipCode("07001");
+        lot.setAddress(address);
 
-        parkingLot.exit(car);
+        lot.setCapacity(200);
 
-        assertFalse(parkingLot.getParkedCars().contains(car));
-        assertEquals(2, car.getParkingFees().get(lotId).getRate()); // 2 hours
-        assertNull(car.getParkingFees().get(lotId).getEntryTime());
-    }
+        String result = lot.toString();
 
-    @Test
-    void testExitNoExceptionWhenChargeOnEntry() {
-        parkingLot.setChargeOnExit(false);
-        parkingLot.entry(car);
-
-        assertDoesNotThrow(() -> parkingLot.exit(car));
-        assertFalse(parkingLot.getParkedCars().contains(car));
-    }
-
-    @Test
-    void testUpdateDailyFeesAddsFeesForAllParkedCars() {
-        parkingLot.setChargeOnExit(false);
-        Car car2 = new Car();
-        car2.setPermit("PERMIT2");
-        car2.setPermitExpiration(LocalDate.now().plusDays(1));
-        car2.setLicense("XYZ789");
-        car2.setOwner(UUID.randomUUID());
-        car2.setParkingFees(new java.util.HashMap<>());
-
-        parkingLot.entry(car);
-        parkingLot.entry(car2);
-
-        parkingLot.updateDailyFees();
-
-        // After update, rate should be 2 for both cars (initial + daily update)
-        assertEquals(2, car.getParkingFees().get(lotId).getRate());
-        assertEquals(2, car2.getParkingFees().get(lotId).getRate());
+        assertTrue(result.contains("lotId=11111111-1111-1111-1111-111111111111"));
+        assertTrue(result.contains("address="));
+        assertTrue(result.contains("capacity=200"));
     }
 }

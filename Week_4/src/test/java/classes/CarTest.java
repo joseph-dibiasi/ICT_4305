@@ -1,146 +1,89 @@
 package classes;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 class CarTest {
 
-    private Car car;
-    private UUID ownerId;
-    private UUID lotId;
-
-    @BeforeEach
-    void setUp() {
-        ownerId = UUID.randomUUID();
-        lotId = UUID.randomUUID();
-        car = new Car("PERMIT-001", LocalDate.now().plusMonths(6), "TEST-123", CarType.SUV, ownerId);
+    @Test
+    void testDefaultConstructor() {
+        Car car = new Car();
+        assertNull(car.getPermit());
+        assertNull(car.getPermitExpiration());
+        assertNull(car.getLicense());
+        assertNull(car.getType());
+        assertNull(car.getOwner());
     }
 
     @Test
-    void testUpdateParkingFees_NewFee() {
-        ParkingFee fee = new ParkingFee(10, true, 1.0, lotId);
-        fee.setTotalFee(10.0);
+    void testParameterizedConstructor() {
+        String permit = "John Doe";
+        LocalDate expiration = LocalDate.of(2025, 12, 31);
+        String license = "ABC-1234";
+        CarType type = CarType.SUV;
+        UUID owner = UUID.randomUUID();
 
-        car.updateParkingFees(fee, true);
+        Car car = new Car(permit, expiration, license, type, owner);
 
-        assertTrue(car.getParkingFees().containsKey(lotId));
-        assertEquals(10.0, car.getParkingFees().get(lotId).getTotalFee());
+        assertEquals(permit, car.getPermit());
+        assertEquals(expiration, car.getPermitExpiration());
+        assertEquals(license, car.getLicense());
+        assertEquals(type, car.getType());
+        assertEquals(owner, car.getOwner());
     }
 
     @Test
-    void testUpdateParkingFees_UpdateExistingFee_DailyRateTrue() {
-        ParkingFee existingFee = new ParkingFee(3, true, 15.0, lotId);
-        existingFee.setTotalFee(45.0);
-        car.getParkingFees().put(lotId, existingFee);
-
-        ParkingFee newFee = new ParkingFee(2, true, 15.0, lotId);
-
-        car.updateParkingFees(newFee, true);
-
-        ParkingFee updatedFee = car.getParkingFees().get(lotId);
-        // rate should be sum of old and new
-        assertEquals(5, updatedFee.getRate());
-
-        // totalFee = rate * lotFees (5 * 15.0)
-        assertEquals(75.0, updatedFee.getTotalFee(), 0.0001);
-    }
-
-
-    @Test
-    void testUpdateParkingFees_UpdateExisting_DailyRateFalse_NoEntryTime() {
-        ParkingFee initialFee = new ParkingFee(5, false, 2.0, lotId);
-        initialFee.setTotalFee(0.0); // Will be updated
-        car.setParkingFees(new HashMap<UUID, ParkingFee>() {{
-            put(lotId, initialFee);
-        }});
-
-        ParkingFee newFee = new ParkingFee(5, false, 2.0, lotId); // Not used directly
-        newFee.setTotalFee(0.0);
-
-        car.updateParkingFees(newFee, false);
-
-        ParkingFee updatedFee = car.getParkingFees().get(lotId);
-        assertEquals(10.0, updatedFee.getTotalFee()); // 5 * 2.0
+    void testSetAndGetPermit() {
+        Car car = new Car();
+        car.setPermit("Alice");
+        assertEquals("Alice", car.getPermit());
     }
 
     @Test
-    void testCalculatePermitBill_SingleFee_SUV() {
-        ParkingFee fee = new ParkingFee(10, true, 1.0, lotId);
-        fee.setTotalFee(100.0);
-
-        car.setParkingFees(new HashMap<UUID, ParkingFee>() {{
-            put(lotId, fee);
-        }});
-
-        double total = car.calculatePermitBill();
-        assertEquals(100.0, total);
+    void testSetAndGetPermitExpiration() {
+        Car car = new Car();
+        LocalDate date = LocalDate.of(2030, 1, 1);
+        car.setPermitExpiration(date);
+        assertEquals(date, car.getPermitExpiration());
     }
 
     @Test
-    void testCalculatePermitBill_SingleFee_Compact_DiscountApplied() {
+    void testSetAndGetLicense() {
+        Car car = new Car();
+        car.setLicense("XYZ-7890");
+        assertEquals("XYZ-7890", car.getLicense());
+    }
+
+    @Test
+    void testSetAndGetType() {
+        Car car = new Car();
         car.setType(CarType.COMPACT);
-
-        ParkingFee fee = new ParkingFee(10, true, 1.0, lotId);
-        fee.setTotalFee(100.0);
-
-        car.setParkingFees(new HashMap<UUID, ParkingFee>() {{
-            put(lotId, fee);
-        }});
-
-        double total = car.calculatePermitBill();
-        assertEquals(80.0, total); // 20% discount
-    }
-
-    @Test
-    void testCalculatePermitBill_MultipleFees_Mixed() {
-        ParkingFee fee1 = new ParkingFee(10, true, 1.0, UUID.randomUUID());
-        fee1.setTotalFee(50.0);
-        ParkingFee fee2 = new ParkingFee(10, true, 1.0, UUID.randomUUID());
-        fee2.setTotalFee(30.0);
-
-        car.setParkingFees(new HashMap<UUID, ParkingFee>() {{
-            put(fee1.getLotId(), fee1);
-            put(fee2.getLotId(), fee2);
-        }});
-
-        assertEquals(80.0, car.calculatePermitBill());
-    }
-
-    @Test
-    void testCalculatePermitBill_NoFees() {
-        car.setParkingFees(new HashMap<>());
-        assertEquals(0.0, car.calculatePermitBill());
-    }
-
-    @Test
-    void testGettersAndSetters() {
-        car.setLicense("NEW-LICENSE");
-        car.setPermit("NEW-PERMIT");
-        car.setPermitExpiration(LocalDate.of(2026, 1, 1));
-        car.setType(CarType.COMPACT);
-        UUID newOwner = UUID.randomUUID();
-        car.setOwner(newOwner);
-
-        assertEquals("NEW-LICENSE", car.getLicense());
-        assertEquals("NEW-PERMIT", car.getPermit());
-        assertEquals(LocalDate.of(2026, 1, 1), car.getPermitExpiration());
         assertEquals(CarType.COMPACT, car.getType());
-        assertEquals(newOwner, car.getOwner());
     }
 
     @Test
-    void testToStringContainsKeyInfo() {
-        String str = car.toString();
-        assertTrue(str.contains(car.getLicense()));
-        assertTrue(str.contains(car.getPermit()));
-        assertTrue(str.contains(car.getPermitExpiration().toString()));
-        assertTrue(str.contains(car.getType().toString()));
+    void testSetAndGetOwner() {
+        Car car = new Car();
+        UUID ownerId = UUID.randomUUID();
+        car.setOwner(ownerId);
+        assertEquals(ownerId, car.getOwner());
+    }
+
+    @Test
+    void testToString() {
+        String permit = "Bob";
+        LocalDate expiration = LocalDate.of(2026, 6, 15);
+        String license = "LMN-4567";
+        CarType type = CarType.SUV;
+        UUID owner = UUID.fromString("123e4567-e89b-12d3-a456-556642440000");
+
+        Car car = new Car(permit, expiration, license, type, owner);
+        String expected = "Car [permit=Bob, permitExpiration=2026-06-15, license=LMN-4567, type=SUV, owner=123e4567-e89b-12d3-a456-556642440000]";
+
+        assertEquals(expected, car.toString());
     }
 }

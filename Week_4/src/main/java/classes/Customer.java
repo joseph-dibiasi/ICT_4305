@@ -73,7 +73,7 @@ public class Customer {
 
 	@Override
 	public String toString() {
-		return "Customer [customerId=" + customerId + ", name=" + name + ", address=" + address + ", phoneNumber="
+		return "Customer [customerId=" + customerId + ", name=" + name + ", address=" + address.getAddressInfo() + ", phoneNumber="
 				+ phoneNumber + "]";
 	}
 
