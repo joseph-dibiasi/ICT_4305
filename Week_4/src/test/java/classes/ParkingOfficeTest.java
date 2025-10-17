@@ -72,7 +72,8 @@ public class ParkingOfficeTest {
         ParkingLot lot = createLot(UUID.randomUUID(), 5, true, 10.0);
         parkingOffice.getLots().add(lot);
 
-        assertThrows(RuntimeException.class, () -> parkingOffice.entry(lot, car));
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> parkingOffice.entry(lot, car));
+        assertTrue(ex.getMessage().contains("Permit expired"));
     }
 
     @Test
@@ -85,7 +86,8 @@ public class ParkingOfficeTest {
         ParkingLot lot = createLot(UUID.randomUUID(), 0, true, 10.0); // capacity = 0
         parkingOffice.getLots().add(lot);
 
-        assertThrows(RuntimeException.class, () -> parkingOffice.entry(lot, car));
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> parkingOffice.entry(lot, car));
+        assertTrue(ex.getMessage().contains("Parking Lot Full"));
     }
 
     @Test
@@ -126,6 +128,23 @@ public class ParkingOfficeTest {
     }
 
     @Test
+    void testExitWhenNoChargeExistsThrowsAndRemovesCar() {
+        UUID lotId = UUID.randomUUID();
+        UUID ownerId = UUID.randomUUID();
+
+        Car car = new Car("PermitX", LocalDate.now().plusDays(5), "NOCHG1", CarType.SUV, ownerId);
+
+        ParkingLot lot = createLot(lotId, 5, true, 2.0);
+        lot.getParkedCars().add(car);
+        // Intentionally DO NOT add a ParkingCharge to parkingOffice.getCharges()
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> parkingOffice.exit(lot, car));
+        assertTrue(ex.getMessage().contains("Parking Charge Not found"));
+        // finally block should remove car even when exception is thrown
+        assertFalse(lot.getParkedCars().contains(car));
+    }
+
+    @Test
     void testUpdateDailyFees() {
         UUID lotId = UUID.randomUUID();
         UUID customerId = UUID.randomUUID();
@@ -149,6 +168,50 @@ public class ParkingOfficeTest {
     }
 
     @Test
+    void testCreateOrUpdateEntryParkingCharge_UpdatesExistingDaily() {
+        ParkingLot daily = createLot(UUID.randomUUID(), 5, false, 3.0);
+        parkingOffice.getLots().add(daily);
+
+        UUID owner = UUID.randomUUID();
+        Car car = new Car("DP", LocalDate.now().plusDays(3), "DUP", CarType.SUV, owner);
+
+        ParkingCharge existing = new ParkingCharge();
+        existing.setLotId(daily.getLotId());
+        existing.setPermitId(owner);
+        existing.setAmount(new Money(2.0));
+
+        parkingOffice.getCharges().add(existing);
+
+        parkingOffice.createOrUpdateEntryParkingCharge(daily, car);
+
+        ParkingCharge found = parkingOffice.findParkingChargeByLotIdAndOwnerId(daily.getLotId(), owner);
+        assertNotNull(found);
+        // existing amount 2.0 + daily lot fee 3.0 => 5.0
+        assertEquals(5.0, found.getAmount().getDollars(), 0.0001);
+    }
+
+    @Test
+    void testCreateOrUpdateEntryParkingCharge_NewHourlyAndDaily() {
+        ParkingLot hourly = createLot(UUID.randomUUID(), 10, true, 2.0);
+        parkingOffice.getLots().add(hourly);
+
+        ParkingLot daily = createLot(UUID.randomUUID(), 10, false, 5.0);
+        parkingOffice.getLots().add(daily);
+
+        Car car1 = new Car("PERM", LocalDate.now().plusDays(1), "H1", CarType.SUV, UUID.randomUUID());
+        parkingOffice.createOrUpdateEntryParkingCharge(hourly, car1);
+        ParkingCharge hc = parkingOffice.findParkingChargeByLotIdAndOwnerId(hourly.getLotId(), car1.getOwner());
+        assertNotNull(hc);
+        assertEquals(0.0, hc.getAmount().getDollars());
+
+        Car car2 = new Car("PERM2", LocalDate.now().plusDays(1), "D1", CarType.SUV, UUID.randomUUID());
+        parkingOffice.createOrUpdateEntryParkingCharge(daily, car2);
+        ParkingCharge dc = parkingOffice.findParkingChargeByLotIdAndOwnerId(daily.getLotId(), car2.getOwner());
+        assertNotNull(dc);
+        assertEquals(5.0, dc.getAmount().getDollars());
+    }
+
+    @Test
     void testCalculatePermitBillForCompactCar() {
         UUID ownerId = UUID.randomUUID();
         Car car = new Car("Permit3", LocalDate.now().plusDays(10), "STU901", CarType.COMPACT, ownerId);
@@ -166,6 +229,21 @@ public class ParkingOfficeTest {
 
         Double total = parkingOffice.calculatePermitBill(car);
         assertEquals(80.0, total);
+    }
+
+    @Test
+    void testCalculatePermitBillForNonCompactCar() {
+        UUID ownerId = UUID.randomUUID();
+        Car car = new Car("PermitNC", LocalDate.now().plusDays(10), "NONC1", CarType.SUV, ownerId);
+
+        ParkingCharge c1 = new ParkingCharge();
+        c1.setPermitId(ownerId);
+        c1.setAmount(new Money(30.0));
+
+        parkingOffice.getCharges().add(c1);
+
+        Double total = parkingOffice.calculatePermitBill(car);
+        assertEquals(30.0, total);
     }
 
     @Test
@@ -212,6 +290,57 @@ public class ParkingOfficeTest {
 
         Money updated = parkingOffice.addCharge(charge);
         assertEquals(48.0, updated.getDollars());
+    }
+
+    @Test
+    void testAddChargeThrowsWhenLotMissing() {
+        ParkingCharge pc = new ParkingCharge();
+        pc.setLotId(UUID.randomUUID()); // not added to office.lots
+        pc.setAmount(new Money(10.0));
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> parkingOffice.addCharge(pc));
+        assertTrue(ex.getMessage().contains("Failed to Process Parking Charge"));
+    }
+
+    @Test
+    void testRemoveParkingChargesByOwnerIdReturnsFalseWhenNone() {
+        UUID owner = UUID.randomUUID();
+        boolean removed = parkingOffice.removeParkingChargesByOwnerId(owner);
+        assertFalse(removed);
+    }
+
+    @Test
+    void testFindParkingChargeAndRelatedFinders() {
+        UUID owner = UUID.randomUUID();
+        UUID lotId = UUID.randomUUID();
+
+        // initially none
+        assertNull(parkingOffice.findParkingChargeByLotIdAndOwnerId(lotId, owner));
+        assertTrue(parkingOffice.findParkingChargesByOwnerId(owner).isEmpty());
+
+        // add a charge
+        ParkingCharge pc = new ParkingCharge();
+        pc.setLotId(lotId);
+        pc.setPermitId(owner);
+        pc.setAmount(new Money(7.0));
+        parkingOffice.getCharges().add(pc);
+
+        assertNotNull(parkingOffice.findParkingChargeByLotIdAndOwnerId(lotId, owner));
+        assertEquals(1, parkingOffice.findParkingChargesByOwnerId(owner).size());
+    }
+
+    @Test
+    void testFindCarsByCustomerId() {
+        UUID cid = UUID.randomUUID();
+        Car c1 = new Car("P-A", LocalDate.now().plusDays(10), "CAR1", CarType.SUV, cid);
+        Car c2 = new Car("P-B", LocalDate.now().plusDays(10), "CAR2", CarType.COMPACT, cid);
+        parkingOffice.getCars().add(c1);
+        parkingOffice.getCars().add(c2);
+
+        List<Car> found = parkingOffice.findCarsByCustomerId(cid);
+        assertEquals(2, found.size());
+        assertTrue(found.contains(c1));
+        assertTrue(found.contains(c2));
     }
 
     // Helper to create ParkingLot
