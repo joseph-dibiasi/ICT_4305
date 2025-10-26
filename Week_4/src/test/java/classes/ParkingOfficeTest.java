@@ -89,6 +89,21 @@ public class ParkingOfficeTest {
         RuntimeException ex = assertThrows(RuntimeException.class, () -> parkingOffice.entry(lot, car));
         assertTrue(ex.getMessage().contains("Parking Lot Full"));
     }
+    
+    @Test
+    void testEntryFailsIfCarAlreadyInLot() {
+    	Customer customer = parkingOffice.register("Eve", createTestAddress(), "555-0002");
+    	Car car = parkingOffice.register(customer, "GHI789", CarType.SUV);
+    	car.setPermit("Eve");
+    	car.setPermitExpiration(LocalDate.now().plusDays(10));
+    	
+    	ParkingLot lot = createLot(UUID.randomUUID(), 2, true, 10.0); // capacity = 0
+    	lot.getParkedCars().add(car);
+    	parkingOffice.getLots().add(lot);
+    	
+    	RuntimeException ex = assertThrows(RuntimeException.class, () -> parkingOffice.entry(lot, car));
+    	assertTrue(ex.getMessage().contains("Car already parked in the lot."));
+    }
 
     @Test
     void testSuccessfulEntry() {
@@ -125,6 +140,27 @@ public class ParkingOfficeTest {
         assertDoesNotThrow(() -> parkingOffice.exit(lot, car));
         assertFalse(lot.getParkedCars().contains(car));
         assertEquals(10.0, charge.getAmount().getDollars());
+    }
+    
+    @Test
+    void testExitHourlyLotThrowsInvalid() {
+    	UUID lotId = UUID.randomUUID();
+    	UUID ownerId = UUID.randomUUID();
+    	
+    	Car car = new Car("Permit1", LocalDate.now().plusDays(10), "MNO345", CarType.SUV, ownerId);
+    	
+    	ParkingLot lot = createLot(lotId, 5, true, 5.0);
+    	lot.getParkedCars().add(car);
+    	
+    	ParkingCharge charge = new ParkingCharge();
+    	charge.setLotId(lotId);
+    	charge.setPermitId(ownerId);
+    	charge.setIncurred(Instant.now().plusSeconds(7200)); // 2 hours ahead
+    	charge.setAmount(new Money(0.0));
+        parkingOffice.getCharges().add(charge);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> parkingOffice.exit(lot, car));
+        assertTrue(ex.getMessage().contains("Invalid parking time detected."));
     }
 
     @Test
