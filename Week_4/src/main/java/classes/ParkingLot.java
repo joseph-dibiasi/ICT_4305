@@ -1,6 +1,7 @@
 package classes;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -74,6 +75,25 @@ public class ParkingLot {
 
 	public void setParkedCars(Set<Car> parkedCars) {
 		this.parkedCars = parkedCars;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(address, capacity, chargeOnExit, lotFee, lotId, parkedCars);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ParkingLot other = (ParkingLot) obj;
+		return Objects.equals(address, other.address) && Objects.equals(capacity, other.capacity)
+				&& Objects.equals(chargeOnExit, other.chargeOnExit) && Objects.equals(lotFee, other.lotFee)
+				&& Objects.equals(lotId, other.lotId) && Objects.equals(parkedCars, other.parkedCars);
 	}
 
 }

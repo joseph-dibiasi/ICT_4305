@@ -1,5 +1,7 @@
 package classes;
 
+import java.util.Objects;
+
 public class Money {
 	
 	public Money() {
@@ -31,5 +33,22 @@ public class Money {
 	@Override
 	public String toString() {
 		return "Money [cents=" + cents + "]";
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(cents);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Money other = (Money) obj;
+		return Objects.equals(cents, other.cents);
 	}
 }

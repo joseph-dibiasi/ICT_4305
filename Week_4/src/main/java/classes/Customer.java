@@ -2,6 +2,7 @@ package classes;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.UUID;
 
 public class Customer {
@@ -75,6 +76,25 @@ public class Customer {
 	public String toString() {
 		return "Customer [customerId=" + customerId + ", name=" + name + ", address=" + address.getAddressInfo() + ", phoneNumber="
 				+ phoneNumber + "]";
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(address, cars, customerId, name, phoneNumber);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Customer other = (Customer) obj;
+		return Objects.equals(address, other.address) && Objects.equals(cars, other.cars)
+				&& Objects.equals(customerId, other.customerId) && Objects.equals(name, other.name)
+				&& Objects.equals(phoneNumber, other.phoneNumber);
 	}
 
 }

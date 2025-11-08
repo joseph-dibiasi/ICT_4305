@@ -389,4 +389,62 @@ public class ParkingOfficeTest {
         lot.setAddress(createTestAddress());
         return lot;
     }
+    
+    @Test
+    void testGetCustomerIds() {
+        Customer c1 = parkingOffice.register("AliceT", createTestAddress(), "111-1111");
+        Customer c2 = parkingOffice.register("BobT", createTestAddress(), "222-2222");
+
+        Collection<UUID> ids = parkingOffice.getCustomerIds();
+
+        assertEquals(2, ids.size());
+        assertTrue(ids.contains(c1.getCustomerId()));
+        assertTrue(ids.contains(c2.getCustomerId()));
+    }
+
+    @Test
+    void testGetPermitIdsDistinctAcrossCars() {
+        UUID owner1 = UUID.randomUUID();
+        UUID owner2 = UUID.randomUUID();
+
+        Car c1 = new Car("P1", LocalDate.now().plusDays(5), "L1", CarType.SUV, owner1);
+        Car c2 = new Car("P2", LocalDate.now().plusDays(5), "L2", CarType.SUV, owner1);
+        Car c3 = new Car("P3", LocalDate.now().plusDays(5), "L3", CarType.COMPACT, owner2);
+
+        parkingOffice.getCars().add(c1);
+        parkingOffice.getCars().add(c2);
+        parkingOffice.getCars().add(c3);
+
+        Collection<UUID> permits = parkingOffice.getPermitIds();
+
+        assertEquals(2, permits.size());
+        assertTrue(permits.contains(owner1));
+        assertTrue(permits.contains(owner2));
+    }
+
+    @Test
+    void testGetPermitIdsForCustomer() {
+        Customer cust = parkingOffice.register("CarolT", createTestAddress(), "333-3333");
+        // register two cars for same customer
+        parkingOffice.register(cust, "C1", CarType.SUV);
+        parkingOffice.register(cust, "C2", CarType.COMPACT);
+        // another customer/car
+        Customer other = parkingOffice.register("DaveT", createTestAddress(), "444-4444");
+        parkingOffice.register(other, "O1", CarType.SUV);
+
+        Collection<UUID> custPermits = parkingOffice.getPermitIds(cust);
+
+        // Implementation returns distinct owner ids derived from cars' owner field,
+        // so for a customer with one or more cars this should contain the customer's id once.
+        assertEquals(1, custPermits.size());
+        assertTrue(custPermits.contains(cust.getCustomerId()));
+    }
+
+    @Test
+    void testGetPermitIdsForNullCustomerReturnsEmpty() {
+        Collection<UUID> result = parkingOffice.getPermitIds((Customer) null);
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
 }

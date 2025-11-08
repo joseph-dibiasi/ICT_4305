@@ -1,6 +1,7 @@
 package classes;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 public class ParkingCharge {
@@ -41,6 +42,22 @@ public class ParkingCharge {
 	public String toString() {
 		return "ParkingCharge [permidId=" + permitId + ", lotId=" + lotId + ", incurred=" + incurred + ", amount="
 				+ amount + "]";
+	}
+	@Override
+	public int hashCode() {
+		return Objects.hash(amount, incurred, lotId, permitId);
+	}
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ParkingCharge other = (ParkingCharge) obj;
+		return Objects.equals(amount, other.amount) && Objects.equals(incurred, other.incurred)
+				&& Objects.equals(lotId, other.lotId) && Objects.equals(permitId, other.permitId);
 	}
 
 }

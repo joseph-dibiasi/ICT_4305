@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public class ParkingOffice {
@@ -48,6 +49,41 @@ public class ParkingOffice {
 		return car;
 
 	}
+	
+	/**
+	 * Return collection of all customer ids.
+	 */
+	public List<UUID> getCustomerIds() {
+	    return this.customers.stream()
+	            .map(Customer::getCustomerId)
+	            .toList();
+	}
+
+	/**
+	 * Return distinct collection of all permit ids (derived from cars' owner ids).
+	 */
+	public List<UUID> getPermitIds() {
+	    return this.cars.stream()
+	            .map(Car::getOwner)
+	            .distinct()
+	            .toList();
+	}
+
+	/**
+	 * Return distinct collection of permit ids for the specified customer.
+	 */
+	public List<UUID> getPermitIds(Customer customer) {
+	    if (customer == null) {
+	        return List.of();
+	    }
+	    UUID customerId = customer.getCustomerId();
+	    return this.cars.stream()
+	            .filter(car -> car.getOwner().equals(customerId))
+	            .map(Car::getOwner)
+	            .distinct()
+	            .toList();
+	}
+	
 
 	/*
 	 * This method is responsible for creating the entry ParkingFee object for each
@@ -329,6 +365,25 @@ public class ParkingOffice {
 
 	public void setCharges(List<ParkingCharge> charges) {
 		this.charges = charges;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(address, cars, charges, customers, lots, name);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ParkingOffice other = (ParkingOffice) obj;
+		return Objects.equals(address, other.address) && Objects.equals(cars, other.cars)
+				&& Objects.equals(charges, other.charges) && Objects.equals(customers, other.customers)
+				&& Objects.equals(lots, other.lots) && Objects.equals(name, other.name);
 	}
 
 }
