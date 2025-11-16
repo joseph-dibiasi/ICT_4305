@@ -1,7 +1,6 @@
 package classes;
 
-import java.time.LocalDate;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -16,18 +15,7 @@ public class Customer {
 
 	private String phoneNumber;
 
-	private HashMap<String, Car> cars;
-
-	/*
-	 * Every car registered to a customer is valid for one year from the date of
-	 * registration. A customer can register multiple cars.
-	 */
-	public Car register(String license, CarType carType) {
-		Car registeredCar = new Car(getName(), LocalDate.now().plusYears(1), license, carType, getCustomerId());
-
-		this.getCars().put(registeredCar.getLicense(), registeredCar);
-		return registeredCar;
-	}
+	private List<Car> cars;
 
 	public UUID getCustomerId() {
 		return customerId;
@@ -61,14 +49,11 @@ public class Customer {
 		this.phoneNumber = phoneNumber;
 	}
 
-	public HashMap<String, Car> getCars() {
-		if (cars == null) {
-			setCars(new HashMap<String, Car>());
-		}
+	public List<Car> getCars() {
 		return cars;
 	}
 
-	public void setCars(HashMap<String, Car> cars) {
+	public void setCars(List<Car> cars) {
 		this.cars = cars;
 	}
 

@@ -1,3 +1,4 @@
+// File: ICT_4305/Week_4/src/test/java/classes/CarTest.java
 package classes;
 
 import org.junit.jupiter.api.Test;
@@ -21,13 +22,14 @@ class CarTest {
 
     @Test
     void testParameterizedConstructor() {
+        UUID owner = UUID.randomUUID();
         String permit = "John Doe";
         LocalDate expiration = LocalDate.of(2025, 12, 31);
         String license = "ABC-1234";
         CarType type = CarType.SUV;
-        UUID owner = UUID.randomUUID();
 
-        Car car = new Car(permit, expiration, license, type, owner);
+        // Note: Car constructor parameter order in production code is (UUID owner, String permit, LocalDate permitExpiration, String license, CarType type)
+        Car car = new Car(owner, permit, expiration, license, type);
 
         assertEquals(permit, car.getPermit());
         assertEquals(expiration, car.getPermitExpiration());
@@ -37,53 +39,39 @@ class CarTest {
     }
 
     @Test
-    void testSetAndGetPermit() {
+    void testSetAndGetters() {
         Car car = new Car();
         car.setPermit("Alice");
         assertEquals("Alice", car.getPermit());
-    }
 
-    @Test
-    void testSetAndGetPermitExpiration() {
-        Car car = new Car();
         LocalDate date = LocalDate.of(2030, 1, 1);
         car.setPermitExpiration(date);
         assertEquals(date, car.getPermitExpiration());
-    }
 
-    @Test
-    void testSetAndGetLicense() {
-        Car car = new Car();
         car.setLicense("XYZ-7890");
         assertEquals("XYZ-7890", car.getLicense());
-    }
 
-    @Test
-    void testSetAndGetType() {
-        Car car = new Car();
         car.setType(CarType.COMPACT);
         assertEquals(CarType.COMPACT, car.getType());
-    }
 
-    @Test
-    void testSetAndGetOwner() {
-        Car car = new Car();
         UUID ownerId = UUID.randomUUID();
         car.setOwner(ownerId);
         assertEquals(ownerId, car.getOwner());
     }
 
     @Test
-    void testToString() {
-        String permit = "Bob";
-        LocalDate expiration = LocalDate.of(2026, 6, 15);
-        String license = "LMN-4567";
-        CarType type = CarType.SUV;
+    void testToStringAndEquality() {
         UUID owner = UUID.fromString("123e4567-e89b-12d3-a456-556642440000");
-
-        Car car = new Car(permit, expiration, license, type, owner);
+        Car car = new Car(owner, "Bob", LocalDate.of(2026, 6, 15), "LMN-4567", CarType.SUV);
         String expected = "Car [permit=Bob, permitExpiration=2026-06-15, license=LMN-4567, type=SUV, owner=123e4567-e89b-12d3-a456-556642440000]";
-
         assertEquals(expected, car.toString());
+
+        Car car2 = new Car(owner, "Bob", LocalDate.of(2026, 6, 15), "LMN-4567", CarType.SUV);
+        assertEquals(car, car2);
+        assertEquals(car.hashCode(), car2.hashCode());
+
+        // change one field -> not equal
+        car2.setLicense("DIFF-1");
+        assertNotEquals(car, car2);
     }
 }

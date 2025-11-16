@@ -10,7 +10,7 @@ public class Car {
 	public Car() {
 	}
 
-	public Car(String permit, LocalDate permitExpiration, String license, CarType type, UUID owner) {
+	public Car(UUID owner, String permit, LocalDate permitExpiration, String license, CarType type) {
 		super();
 		this.permit = permit;
 		this.permitExpiration = permitExpiration;

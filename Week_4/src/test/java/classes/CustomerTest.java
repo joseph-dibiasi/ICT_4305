@@ -1,9 +1,10 @@
+// File: ICT_4305/Week_4/src/test/java/classes/CustomerTest.java
 package classes;
 
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDate;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -19,72 +20,41 @@ class CustomerTest {
     }
 
     @Test
-    void testSetAndGetName() {
+    void testSetAndGetNameAndPhone() {
         Customer customer = new Customer();
         customer.setName("Alice");
+        customer.setPhoneNumber("123-456-7890");
         assertEquals("Alice", customer.getName());
+        assertEquals("123-456-7890", customer.getPhoneNumber());
     }
 
     @Test
     void testSetAndGetAddress() {
         Customer customer = new Customer();
-        Address address = new Address(); // Assuming Address is a basic POJO
+        Address address = new Address();
+        address.setStreetAddress1("100 Test St");
+        address.setCity("CityX");
         customer.setAddress(address);
         assertEquals(address, customer.getAddress());
+        assertEquals("100 Test St", customer.getAddress().getStreetAddress1());
     }
 
     @Test
-    void testSetAndGetPhoneNumber() {
+    void testSetAndGetCarsList() {
         Customer customer = new Customer();
-        customer.setPhoneNumber("123-456-7890");
-        assertEquals("123-456-7890", customer.getPhoneNumber());
-    }
-
-    @Test
-    void testSetAndGetCars() {
-        Customer customer = new Customer();
-        HashMap<String, Car> cars = new HashMap<>();
+        List<Car> cars = new ArrayList<>();
         Car car = new Car();
         car.setLicense("XYZ-123");
-        cars.put("XYZ-123", car);
+        cars.add(car);
 
         customer.setCars(cars);
         assertEquals(cars, customer.getCars());
-        assertEquals(car, customer.getCars().get("XYZ-123"));
+        assertEquals(1, customer.getCars().size());
+        assertEquals(car, customer.getCars().get(0));
     }
 
     @Test
-    void testGetCarsInitializesIfNull() {
-        Customer customer = new Customer();
-        // Initially cars is null
-        assertNotNull(customer.getCars());
-        assertTrue(customer.getCars().isEmpty());
-    }
-
-    @Test
-    void testRegisterAddsCarWithCorrectFields() {
-        Customer customer = new Customer();
-        customer.setName("Bob");
-        UUID customerId = UUID.randomUUID();
-        customer.setCustomerId(customerId);
-
-        Car registeredCar = customer.register("ABC-999", CarType.SUV);
-
-        assertNotNull(registeredCar);
-        assertEquals("Bob", registeredCar.getPermit());
-        assertEquals("ABC-999", registeredCar.getLicense());
-        assertEquals(CarType.SUV, registeredCar.getType());
-        assertEquals(customerId, registeredCar.getOwner());
-
-        // Check expiration is one year from today
-        assertEquals(LocalDate.now().plusYears(1), registeredCar.getPermitExpiration());
-
-        // Confirm it's added to the customer's car list
-        assertEquals(registeredCar, customer.getCars().get("ABC-999"));
-    }
-
-    @Test
-    void testToString() {
+    void testToStringContainsNameAndAddressInfo() {
         Customer customer = new Customer();
         customer.setCustomerId(UUID.fromString("123e4567-e89b-12d3-a456-556642440000"));
         customer.setName("Jane Doe");
@@ -100,10 +70,33 @@ class CustomerTest {
         customer.setPhoneNumber("999-999-9999");
 
         String toStringResult = customer.toString();
-
         assertTrue(toStringResult.contains("Jane Doe"));
-        assertTrue(toStringResult.contains("Gotham")); // indirect check for address inclusion
+        // ensure address info appears via toString call
+        assertTrue(toStringResult.contains("Gotham"));
         assertTrue(toStringResult.contains("999-999-9999"));
     }
-    
+
+    @Test
+    void testEqualsAndHashCodeConsistency() {
+        Customer c1 = new Customer();
+        Customer c2 = new Customer();
+
+        UUID id = UUID.randomUUID();
+        c1.setCustomerId(id);
+        c2.setCustomerId(id);
+
+        c1.setName("Sam");
+        c2.setName("Sam");
+
+        Address address = new Address();
+        address.setCity("A");
+        c1.setAddress(address);
+        c2.setAddress(address);
+
+        assertEquals(c1, c2);
+        assertEquals(c1.hashCode(), c2.hashCode());
+
+        c2.setName("Different");
+        assertNotEquals(c1, c2);
+    }
 }
